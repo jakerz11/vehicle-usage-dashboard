@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vehicle Usage Dashboard — After Hours</title>
+<style>
+  :root {
+    --bg:#f4f6fa; --card:#ffffff; --ink:#1a2233; --muted:#6b7688;
+    --line:#e4e8f0; --evening:#f59e0b; --weekend:#ef4444; --accent:#2563eb;
+    --shadow:0 1px 3px rgba(20,30,60,.08),0 4px 16px rgba(20,30,60,.06);
+  }
+  [data-theme="dark"] {
+    --bg:#0f1420; --card:#1a2030; --ink:#e8edf6; --muted:#93a0b5;
+    --line:#2a3245; --evening:#fbbf24; --weekend:#f87171; --accent:#60a5fa;
+    --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3);
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--bg); color:var(--ink);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap { max-width:1080px; margin:0 auto; padding:28px 20px 60px; }
+  header { display:flex; flex-wrap:wrap; align-items:flex-end;
+    justify-content:space-between; gap:12px; margin-bottom:6px; }
+  h1 { font-size:26px; margin:0; letter-spacing:-.3px; }
+  .sub { color:var(--muted); font-size:14px; margin:2px 0 0; }
+  .toggle { border:1px solid var(--line); background:var(--card);
+    color:var(--ink); border-radius:999px; padding:7px 14px; cursor:pointer;
+    font-size:13px; box-shadow:var(--shadow); }
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:14px;
+    margin:22px 0; }
+  .kpi { background:var(--card); border-radius:14px; padding:18px;
+    box-shadow:var(--shadow); }
+  .kpi-label { color:var(--muted); font-size:12px; text-transform:uppercase;
+    letter-spacing:.6px; }
+  .kpi-val { font-size:30px; font-weight:700; margin-top:6px; letter-spacing:-.5px; }
+  .kpi-sub { display:block; font-size:13px; font-weight:500; color:var(--muted);
+    margin-top:2px; }
+  .card { background:var(--card); border-radius:14px; padding:20px 22px;
+    box-shadow:var(--shadow); margin-bottom:20px; }
+  .card h2 { font-size:16px; margin:0 0 4px; }
+  .card .note { color:var(--muted); font-size:13px; margin:0 0 16px; }
+  .vrow { display:grid; grid-template-columns:130px 1fr 78px; align-items:center;
+    gap:12px; padding:6px 0; }
+  .vname { font-weight:600; font-size:14px; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; }
+  .vbar { display:flex; height:22px; background:var(--bg); border-radius:6px;
+    overflow:hidden; }
+  .bar { height:100%; }
+  .bar.evening { background:var(--evening); }
+  .bar.weekend { background:var(--weekend); }
+  .vmiles { text-align:right; font-variant-numeric:tabular-nums; font-weight:600;
+    font-size:14px; }
+  .legend { display:flex; gap:18px; font-size:13px; color:var(--muted);
+    margin-top:14px; }
+  .legend span { display:inline-flex; align-items:center; gap:6px; }
+  .dot { width:11px; height:11px; border-radius:3px; display:inline-block; }
+  .dot.evening { background:var(--evening); }
+  .dot.weekend { background:var(--weekend); }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th, td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-size:12px; text-transform:uppercase;
+    letter-spacing:.5px; cursor:pointer; user-select:none; }
+  th:hover { color:var(--ink); }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .tag { font-size:11.5px; padding:2px 8px; border-radius:999px; font-weight:600; }
+  .tag-evening { background:rgba(245,158,11,.15); color:var(--evening); }
+  .tag-weekend { background:rgba(239,68,68,.15); color:var(--weekend); }
+  footer { color:var(--muted); font-size:12.5px; margin-top:24px;
+    line-height:1.7; }
+  @media (max-width:680px) {
+    .kpis { grid-template-columns:repeat(2,1fr); }
+    .vrow { grid-template-columns:96px 1fr 64px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Company Vehicle Usage — After Hours</h1>
+      <p class="sub">May 20, 2026 – May 25, 2026 &nbsp;·&nbsp; miles driven outside work hours</p>
+    </div>
+    <button class="toggle" onclick="toggleTheme()">◐ Theme</button>
+  </header>
+
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-label">After-hours miles</div>
+      <div class="kpi-val">47.6</div></div>
+    <div class="kpi"><div class="kpi-label">After-hours trips</div>
+      <div class="kpi-val">23</div></div>
+    <div class="kpi"><div class="kpi-label">Vehicles used</div>
+      <div class="kpi-val">4</div></div>
+    <div class="kpi"><div class="kpi-label">Most used vehicle</div>
+      <div class="kpi-val" style="font-size:22px">Trace<span class='kpi-sub'>21.9 mi</span></div></div>
+  </div>
+
+  <div class="card">
+    <h2>Miles driven by vehicle (after hours)</h2>
+    <p class="note">Each vehicle's total off-hours mileage, split by when it occurred.</p>
+    
+        <div class="vrow">
+          <div class="vname" title="Trace Mackey">Trace</div>
+          <div class="vbar"><div class="bar evening" style="width:0.0%"></div><div class="bar weekend" style="width:100.0%"></div></div>
+          <div class="vmiles">21.9 mi</div>
+        </div>
+        <div class="vrow">
+          <div class="vname" title="Jake">Jake</div>
+          <div class="vbar"><div class="bar evening" style="width:14.0%"></div><div class="bar weekend" style="width:59.1%"></div></div>
+          <div class="vmiles">16.0 mi</div>
+        </div>
+        <div class="vrow">
+          <div class="vname" title="Andrew Osborne">Andrew</div>
+          <div class="vbar"><div class="bar evening" style="width:26.1%"></div><div class="bar weekend" style="width:0.0%"></div></div>
+          <div class="vmiles">5.7 mi</div>
+        </div>
+        <div class="vrow">
+          <div class="vname" title="Blaine Dawson">Blaine</div>
+          <div class="vbar"><div class="bar evening" style="width:18.5%"></div><div class="bar weekend" style="width:0.0%"></div></div>
+          <div class="vmiles">4.0 mi</div>
+        </div>
+    <div class="legend">
+      <span><i class="dot evening"></i> Weekday evening (after 7:30 PM)</span>
+      <span><i class="dot weekend"></i> Weekend (Sat / Sun)</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>After-hours miles by day</h2>
+    <p class="note">When off-hours driving happens across the week.</p>
+    
+        <div class="vrow">
+          <div class="vname">Monday</div>
+          <div class="vbar"><div class="bar evening" style="width:8.9%"></div></div>
+          <div class="vmiles">2.1 mi</div>
+        </div>
+        <div class="vrow">
+          <div class="vname">Tuesday</div>
+          <div class="vbar"><div class="bar evening" style="width:0.0%"></div></div>
+          <div class="vmiles">0.0 mi</div>
+        </div>
+        <div class="vrow">
+          <div class="vname">Wednesday</div>
+          <div class="vbar"><div class="bar evening" style="width:25.5%"></div></div>
+          <div class="vmiles">5.9 mi</div>
+        </div>
+        <div class="vrow">
+          <div class="vname">Thursday</div>
+          <div class="vbar"><div class="bar evening" style="width:21.0%"></div></div>
+          <div class="vmiles">4.8 mi</div>
+        </div>
+        <div class="vrow">
+          <div class="vname">Friday</div>
+          <div class="vbar"><div class="bar evening" style="width:0.2%"></div></div>
+          <div class="vmiles">0.1 mi</div>
+        </div>
+        <div class="vrow">
+          <div class="vname">Saturday</div>
+          <div class="vbar"><div class="bar weekend" style="width:100.0%"></div></div>
+          <div class="vmiles">23.0 mi</div>
+        </div>
+        <div class="vrow">
+          <div class="vname">Sunday</div>
+          <div class="vbar"><div class="bar weekend" style="width:51.1%"></div></div>
+          <div class="vmiles">11.8 mi</div>
+        </div>
+  </div>
+
+  <div class="card">
+    <h2>All after-hours trips (23)</h2>
+    <p class="note">Click a column heading to sort.</p>
+    <table id="detail">
+      <thead><tr>
+        <th>Vehicle</th><th>Driver</th><th>Start</th><th>End</th>
+        <th class="num">Miles</th><th>Type</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>Blaine</td>
+          <td>Blaine Dawson</td>
+          <td data-sort="1779329134.0">Wed May 20, 08:05 PM</td>
+          <td>08:11 PM</td>
+          <td data-sort="2.32" class="num">2.32</td>
+          <td><span class="tag tag-evening">Weekday evening</span></td>
+        </tr>
+        <tr>
+          <td>Andrew</td>
+          <td>Andrew Osborne</td>
+          <td data-sort="1779331013.0">Wed May 20, 08:36 PM</td>
+          <td>08:39 PM</td>
+          <td data-sort="0.76" class="num">0.76</td>
+          <td><span class="tag tag-evening">Weekday evening</span></td>
+        </tr>
+        <tr>
+          <td>Jake</td>
+          <td>Jake</td>
+          <td data-sort="1779331044.0">Wed May 20, 08:37 PM</td>
+          <td>08:38 PM</td>
+          <td data-sort="0.3" class="num">0.30</td>
+          <td><span class="tag tag-evening">Weekday evening</span></td>
+        </tr>
+        <tr>
+          <td>Jake</td>
+          <td>Jake</td>
+          <td data-sort="1779331530.0">Wed May 20, 08:45 PM</td>
+          <td>08:46 PM</td>
+          <td data-sort="0.21" class="num">0.21</td>
+          <td><span class="tag tag-evening">Weekday evening</span></td>
+        </tr>
+        <tr>
+          <td>Jake</td>
+          <td>Jake</td>
+          <td data-sort="1779332658.0">Wed May 20, 09:04 PM</td>
+          <td>09:06 PM</td>
+          <td data-sort="0.56" class="num">0.56</td>
+          <td><span class="tag tag-evening">Weekday evening</span></td>
+        </tr>
+        <tr>
+          <td>Blaine</td>
+          <td>Blaine Dawson</td>
+          <td data-sort="1779332954.0">Wed May 20, 09:09 PM</td>
+          <td>09:14 PM</td>
+          <td data-sort="1.72" class="num">1.72</td>
+          <td><span class="tag tag-evening">Weekday evening</span></td>
+        </tr>
+        <tr>
+          <td>Andrew</td>
+          <td>Andrew Osborne</td>
+          <td data-sort="1779419764.0">Thu May 21, 09:16 PM</td>
+          <td>09:25 PM</td>
+          <td data-sort="4.83" class="num">4.83</td>
+          <td><span class="tag tag-evening">Weekday evening</span></td>
+        </tr>
+        <tr>
+          <td>Andrew</td>
+          <td>Andrew Osborne</td>
+          <td data-sort="1779501114.0">Fri May 22, 07:51 PM</td>
+          <td>07:53 PM</td>
+          <td data-sort="0.05" class="num">0.05</td>
+          <td><span class="tag tag-evening">Weekday evening</span></td>
+        </tr>
+        <tr>
+          <td>Trace</td>
+          <td>Trace Mackey</td>
+          <td data-sort="1779553722.0">Sat May 23, 10:28 AM</td>
+          <td>10:54 AM</td>
+          <td data-sort="11.14" class="num">11.14</td>
+          <td><span class="tag tag-weekend">Weekend</span></td>
+        </tr>
+        <tr>
+          <td>Trace</td>
+          <td>Trace Mackey</td>
+          <td data-sort="1779570841.0">Sat May 23, 03:14 PM</td>
+          <td>03:14 PM</td>
+          <td data-sort="0.07" class="num">0.07</td>
+          <td><span class="tag tag-weekend">Weekend</span></td>
+        </tr>
+        <tr>
+          <td>Trace</td>
+          <td>Trace Mackey</td>
+          <td data-sort="1779571483.0">Sat May 23, 03:24 PM</td>
+          <td>03:36 PM</td>
+          <td data-sort="5.3" class="num">5.30</td>
+          <td><span class="tag tag-weekend">Weekend</span></td>
+        </tr>
+        <tr>
+          <td>Trace</td>
+          <td>Trace Mackey</td>
+          <td data-sort="1779572816.0">Sat May 23, 03:46 PM</td>
+          <td>03:58 PM</td>
+          <td data-sort="5.37" class="num">5.37</td>
+          <td><span class="tag tag-weekend">Weekend</span></td>
+        </tr>
+        <tr>
+          <td>Jake</td>
+          <td>Jake</td>
+          <td data-sort="1779584056.0">Sat May 23, 06:54 PM</td>
+          <td>07:02 PM</td>
+          <td data-sort="1.16" class="num">1.16</td>
+          <td><span class="tag tag-weekend">Weekend</span></td>
+        </tr>
+        <tr>
+          <td>Jake</td>
+          <td>Jake</td>
+          <td data-sort="1779636309.0">Sun May 24, 09:25 AM</td>
+          <td>09:29 AM</td>
+          <td data-sort="1.17" class="num">1.17</td>
+          <td><span class="tag tag-weekend">Weekend</span></td>
+        </tr>
+        <tr>
+          <td>Jake</td>
+          <td>Jake</td>
+          <td data-sort="1779636957.0">Sun May 24, 09:35 AM</td>
+          <td>09:39 AM</td>
+          <td data-sort="1.12" class="num">1.12</td>
+          <td><span class="tag tag-weekend">Weekend</span></td>
+        </tr>
+        <tr>
+          <td>Jake</td>
+          <td>Jake</td>
+          <td data-sort="1779647361.0">Sun May 24, 12:29 PM</td>
+          <td>12:33 PM</td>
+          <td data-sort="1.16" class="num">1.16</td>
+          <td><span class="tag tag-weekend">Weekend</span></td>
+        </tr>
+        <tr>
+          <td>Jake</td>
+          <td>Jake</td>
+          <td data-sort="1779648837.0">Sun May 24, 12:53 PM</td>
+          <td>12:57 PM</td>
+          <td data-sort="1.12" class="num">1.12</td>
+          <td><span class="tag tag-weekend">Weekend</span></td>
+        </tr>
+        <tr>
+          <td>Jake</td>
+          <td>Jake</td>
+          <td data-sort="1779665237.0">Sun May 24, 05:27 PM</td>
+          <td>05:35 PM</td>
+          <td data-sort="3.59" class="num">3.59</td>
+          <td><span class="tag tag-weekend">Weekend</span></td>
+        </tr>
+        <tr>
+          <td>Jake</td>
+          <td>Jake</td>
+          <td data-sort="1779671126.0">Sun May 24, 07:05 PM</td>
+          <td>07:06 PM</td>
+          <td data-sort="0.05" class="num">0.05</td>
+          <td><span class="tag tag-weekend">Weekend</span></td>
+        </tr>
+        <tr>
+          <td>Jake</td>
+          <td>Jake</td>
+          <td data-sort="1779675943.0">Sun May 24, 08:25 PM</td>
+          <td>08:32 PM</td>
+          <td data-sort="3.57" class="num">3.57</td>
+          <td><span class="tag tag-weekend">Weekend</span></td>
+        </tr>
+        <tr>
+          <td>Jake</td>
+          <td>Jake</td>
+          <td data-sort="1779762758.0">Mon May 25, 08:32 PM</td>
+          <td>08:37 PM</td>
+          <td data-sort="0.99" class="num">0.99</td>
+          <td><span class="tag tag-evening">Weekday evening</span></td>
+        </tr>
+        <tr>
+          <td>Jake</td>
+          <td>Jake</td>
+          <td data-sort="1779763690.0">Mon May 25, 08:48 PM</td>
+          <td>08:51 PM</td>
+          <td data-sort="1.0" class="num">1.00</td>
+          <td><span class="tag tag-evening">Weekday evening</span></td>
+        </tr>
+        <tr>
+          <td>Andrew</td>
+          <td>Andrew Osborne</td>
+          <td data-sort="1779771397.0">Mon May 25, 10:56 PM</td>
+          <td>10:57 PM</td>
+          <td data-sort="0.07" class="num">0.07</td>
+          <td><span class="tag tag-evening">Weekday evening</span></td>
+        </tr></tbody>
+    </table>
+  </div>
+
+  <footer>
+    Generated May 26, 2026 10:51 AM from <code>Trip_Miles_by_Time_of_Day_(Last_7_Days)_-_Midway_Construction_-_May_18_2026_-_May_25_2026_1779813283.csv</code>.<br>
+    After-hours = weekday trips starting at or after 7:30 PM, plus all weekend
+    (Sat/Sun) trips. Trips are classified by their start time. Times are local
+    (Mountain). Vehicle = "Asset Name" in the source report.
+  </footer>
+</div>
+<script>
+  function toggleTheme() {
+    var r = document.documentElement;
+    r.setAttribute('data-theme',
+      r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  }
+  // Sortable detail table.
+  document.querySelectorAll('#detail th').forEach(function(th, idx) {
+    var asc = true;
+    th.addEventListener('click', function() {
+      var tb = document.querySelector('#detail tbody');
+      var rows = Array.prototype.slice.call(tb.querySelectorAll('tr'));
+      rows.sort(function(a, b) {
+        var x = a.children[idx], y = b.children[idx];
+        var xv = x.dataset.sort !== undefined ? parseFloat(x.dataset.sort) : x.textContent.trim().toLowerCase();
+        var yv = y.dataset.sort !== undefined ? parseFloat(y.dataset.sort) : y.textContent.trim().toLowerCase();
+        if (xv < yv) return asc ? -1 : 1;
+        if (xv > yv) return asc ? 1 : -1;
+        return 0;
+      });
+      asc = !asc;
+      rows.forEach(function(r) { tb.appendChild(r); });
+    });
+  });
+</script>
+</body>
+</html>
