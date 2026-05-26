@@ -33,8 +33,15 @@
     color:var(--ink); border-radius:999px; padding:8px 15px; cursor:pointer;
     font-size:13px; box-shadow:var(--shadow); transition:transform .1s; }
   .toggle:active { transform:scale(.96); }
+  .controls { display:flex; align-items:center; gap:10px; margin:20px 0 6px;
+    flex-wrap:wrap; }
+  .controls label { color:var(--muted); font-size:13px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.5px; }
+  select { background:var(--card); color:var(--ink); border:1px solid var(--line);
+    border-radius:10px; padding:8px 14px; font-size:14px; font-weight:600;
+    box-shadow:var(--shadow); cursor:pointer; }
   .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:14px;
-    margin:24px 0; }
+    margin:14px 0 24px; }
   .kpi { background:var(--card); border-radius:16px; padding:18px 20px;
     box-shadow:var(--shadow); border:1px solid var(--line); }
   .kpi-label { color:var(--muted); font-size:11.5px; text-transform:uppercase;
@@ -48,6 +55,7 @@
     box-shadow:var(--shadow); border:1px solid var(--line); margin-bottom:20px; }
   .card h2 { font-size:16.5px; margin:0 0 3px; letter-spacing:-.2px; }
   .card .note { color:var(--muted); font-size:13px; margin:0 0 18px; }
+  .scope-chip { color:var(--accent); font-weight:700; }
   .chart-box { position:relative; width:100%; }
   .row2 { display:grid; grid-template-columns:1.3fr 1fr; gap:20px; }
   table { width:100%; border-collapse:collapse; font-size:13.5px; }
@@ -81,38 +89,57 @@
     <button class="toggle" onclick="toggleTheme()">◐ Theme</button>
   </header>
 
+  <div class="card">
+    <h2>Monthly totals</h2>
+    <p class="note">After-hours miles each month, stacked by vehicle. Grows as new weekly reports are added.</p>
+    <div class="chart-box" style="height:320px"><canvas id="chartMonthly"></canvas></div>
+    <div class="table-scroll" style="margin-top:18px">
+    <table id="monthly">
+      <thead><tr><th>Month</th><th class="num">After-hours miles</th><th class="num">Trips</th><th>Top vehicle</th></tr></thead>
+      <tbody id="monthlyTable"></tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="controls">
+    <label for="monthSelect">Showing</label>
+    <select id="monthSelect"></select>
+  </div>
+  <p class="note" style="margin:0 0 4px;color:var(--muted);font-size:13px">
+    The KPIs and charts below reflect the selected period: <span class="scope-chip" id="scopeLabel"></span></p>
+
   <div class="kpis">
     <div class="kpi"><div class="kpi-label">After-hours miles</div>
-      <div class="kpi-val">31.6<span class="kpi-unit">mi</span></div></div>
+      <div class="kpi-val" id="kpiMiles">—</div></div>
     <div class="kpi"><div class="kpi-label">After-hours trips</div>
-      <div class="kpi-val">10</div></div>
+      <div class="kpi-val" id="kpiTrips">—</div></div>
     <div class="kpi"><div class="kpi-label">Vehicles used</div>
-      <div class="kpi-val">3</div></div>
+      <div class="kpi-val" id="kpiVehicles">—</div></div>
     <div class="kpi"><div class="kpi-label">Most used vehicle</div>
-      <div class="kpi-val" style="font-size:23px">Trace<span class='kpi-sub'>21.9 mi</span></div></div>
+      <div class="kpi-val" id="kpiBusiest" style="font-size:23px">—</div></div>
   </div>
 
   <div class="card">
-    <h2>Miles driven by vehicle</h2>
-    <p class="note">Total off-hours mileage per vehicle, stacked by when it happened.</p>
-    <div class="chart-box" style="height:232px"><canvas id="chartVehicle"></canvas></div>
+    <h2>Miles driven by vehicle <span class="scope-chip" id="scopeLabel2"></span></h2>
+    <p class="note">Off-hours mileage per vehicle, stacked by when it happened.</p>
+    <div class="chart-box" id="vehicleBox" style="height:300px"><canvas id="chartVehicle"></canvas></div>
   </div>
 
   <div class="row2">
     <div class="card">
-      <h2>After-hours miles by day</h2>
-      <p class="note">When off-hours driving happens across the week.</p>
+      <h2>By day of week</h2>
+      <p class="note">When off-hours driving happens.</p>
       <div class="chart-box" style="height:300px"><canvas id="chartDay"></canvas></div>
     </div>
     <div class="card">
       <h2>Share by vehicle</h2>
-      <p class="note">Each vehicle's portion of total off-hours miles.</p>
+      <p class="note">Each vehicle's portion of off-hours miles.</p>
       <div class="chart-box" style="height:300px"><canvas id="chartShare"></canvas></div>
     </div>
   </div>
 
   <div class="card">
-    <h2>All after-hours trips (10)</h2>
+    <h2>After-hours trips <span class="scope-chip" id="scopeLabel3"></span></h2>
     <p class="note">Click a column heading to sort.</p>
     <div class="table-scroll">
     <table id="detail">
@@ -120,121 +147,202 @@
         <th>Vehicle</th><th>Driver</th><th>Start</th><th>End</th>
         <th class="num">Miles</th><th>Type</th>
       </tr></thead>
-      <tbody><tr><td>Blaine</td><td>Blaine Dawson</td><td data-sort="1779329134.0">Wed May 20, 08:05 PM</td><td>08:11 PM</td><td data-sort="2.32" class="num">2.32</td><td><span class="tag tag-evening">Weekday evening</span></td></tr><tr><td>Andrew</td><td>Andrew Osborne</td><td data-sort="1779331013.0">Wed May 20, 08:36 PM</td><td>08:39 PM</td><td data-sort="0.76" class="num">0.76</td><td><span class="tag tag-evening">Weekday evening</span></td></tr><tr><td>Blaine</td><td>Blaine Dawson</td><td data-sort="1779332954.0">Wed May 20, 09:09 PM</td><td>09:14 PM</td><td data-sort="1.72" class="num">1.72</td><td><span class="tag tag-evening">Weekday evening</span></td></tr><tr><td>Andrew</td><td>Andrew Osborne</td><td data-sort="1779419764.0">Thu May 21, 09:16 PM</td><td>09:25 PM</td><td data-sort="4.83" class="num">4.83</td><td><span class="tag tag-evening">Weekday evening</span></td></tr><tr><td>Andrew</td><td>Andrew Osborne</td><td data-sort="1779501114.0">Fri May 22, 07:51 PM</td><td>07:53 PM</td><td data-sort="0.05" class="num">0.05</td><td><span class="tag tag-evening">Weekday evening</span></td></tr><tr><td>Trace</td><td>Trace Mackey</td><td data-sort="1779553722.0">Sat May 23, 10:28 AM</td><td>10:54 AM</td><td data-sort="11.14" class="num">11.14</td><td><span class="tag tag-weekend">Weekend</span></td></tr><tr><td>Trace</td><td>Trace Mackey</td><td data-sort="1779570841.0">Sat May 23, 03:14 PM</td><td>03:14 PM</td><td data-sort="0.07" class="num">0.07</td><td><span class="tag tag-weekend">Weekend</span></td></tr><tr><td>Trace</td><td>Trace Mackey</td><td data-sort="1779571483.0">Sat May 23, 03:24 PM</td><td>03:36 PM</td><td data-sort="5.3" class="num">5.30</td><td><span class="tag tag-weekend">Weekend</span></td></tr><tr><td>Trace</td><td>Trace Mackey</td><td data-sort="1779572816.0">Sat May 23, 03:46 PM</td><td>03:58 PM</td><td data-sort="5.37" class="num">5.37</td><td><span class="tag tag-weekend">Weekend</span></td></tr><tr><td>Andrew</td><td>Andrew Osborne</td><td data-sort="1779771397.0">Mon May 25, 10:56 PM</td><td>10:57 PM</td><td data-sort="0.07" class="num">0.07</td><td><span class="tag tag-evening">Weekday evening</span></td></tr></tbody>
+      <tbody id="detailBody"></tbody>
     </table>
     </div>
   </div>
 
   <footer>
-    Generated May 26, 2026 11:27 AM from <code>Trip_Miles_by_Time_of_Day_(Last_7_Days)_-_Midway_Construction_-_May_18_2026_-_May_25_2026_1779813283.csv</code>.<br>
+    Generated May 26, 2026 11:37 AM from &lt;code&gt;Trip_Miles_by_Time_of_Day_(Last_7_Days)_-_Midway_Construction_-_May_18_2026_-_May_25_2026_1779813283.csv&lt;/code&gt;.<br>
     After-hours = weekday trips starting at or after 7:30 PM, plus all weekend
     (Sat/Sun) trips. Classified by start time; times are local (Mountain).
-    Vehicle = "Asset Name" in the source report.<br>
+    Vehicle = "Asset Name" in the source reports.<br>
     Authorized after-hours drivers excluded from this report: Jake, Scott.
   </footer>
 </div>
 <script>
-const DATA = {"vehicles": ["Trace", "Andrew", "Blaine"], "evening": [0.0, 5.71, 4.04], "weekend": [21.88, 0.0, 0.0], "totals": [21.88, 5.71, 4.04], "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], "dayWeekday": [0.07, 0.0, 4.8, 4.83, 0.05, 0, 0], "dayWeekend": [0, 0, 0, 0, 0, 21.88, 0.0]};
+const DATA = {"trips": [{"v": "Blaine", "dr": "Blaine Dawson", "mi": 2.32, "mon": "2026-05", "wd": 2, "we": false, "st": "Wed May 20, 08:05 PM", "ss": 1779329134.0, "en": "08:11 PM"}, {"v": "Andrew", "dr": "Andrew Osborne", "mi": 0.76, "mon": "2026-05", "wd": 2, "we": false, "st": "Wed May 20, 08:36 PM", "ss": 1779331013.0, "en": "08:39 PM"}, {"v": "Blaine", "dr": "Blaine Dawson", "mi": 1.72, "mon": "2026-05", "wd": 2, "we": false, "st": "Wed May 20, 09:09 PM", "ss": 1779332954.0, "en": "09:14 PM"}, {"v": "Andrew", "dr": "Andrew Osborne", "mi": 4.83, "mon": "2026-05", "wd": 3, "we": false, "st": "Thu May 21, 09:16 PM", "ss": 1779419764.0, "en": "09:25 PM"}, {"v": "Andrew", "dr": "Andrew Osborne", "mi": 0.05, "mon": "2026-05", "wd": 4, "we": false, "st": "Fri May 22, 07:51 PM", "ss": 1779501114.0, "en": "07:53 PM"}, {"v": "Trace", "dr": "Trace Mackey", "mi": 11.14, "mon": "2026-05", "wd": 5, "we": true, "st": "Sat May 23, 10:28 AM", "ss": 1779553722.0, "en": "10:54 AM"}, {"v": "Trace", "dr": "Trace Mackey", "mi": 0.07, "mon": "2026-05", "wd": 5, "we": true, "st": "Sat May 23, 03:14 PM", "ss": 1779570841.0, "en": "03:14 PM"}, {"v": "Trace", "dr": "Trace Mackey", "mi": 5.3, "mon": "2026-05", "wd": 5, "we": true, "st": "Sat May 23, 03:24 PM", "ss": 1779571483.0, "en": "03:36 PM"}, {"v": "Trace", "dr": "Trace Mackey", "mi": 5.37, "mon": "2026-05", "wd": 5, "we": true, "st": "Sat May 23, 03:46 PM", "ss": 1779572816.0, "en": "03:58 PM"}, {"v": "Andrew", "dr": "Andrew Osborne", "mi": 0.07, "mon": "2026-05", "wd": 0, "we": false, "st": "Mon May 25, 10:56 PM", "ss": 1779771397.0, "en": "10:57 PM"}], "vehicles": ["Trace", "Andrew", "Blaine"], "months": ["2026-05"], "monthLabels": {"2026-05": "May 2026"}};
 const PALETTE = ['#2563eb','#f59e0b','#ef4444','#10b981','#8b5cf6','#ec4899',
-                 '#14b8a6','#f97316','#6366f1','#84cc16'];
-let charts = [];
+                 '#14b8a6','#f97316','#6366f1','#84cc16','#0ea5e9','#d946ef'];
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
-function cssVar(name) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+function byId(id){ return document.getElementById(id); }
+function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function r1(x){ return Math.round(x*10)/10; }
+function f1(x){ return r1(x).toFixed(1); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function colorFor(v){ return PALETTE[Math.max(0, DATA.vehicles.indexOf(v)) % PALETTE.length]; }
+function theme(){ return { text:cssVar('--muted'), ink:cssVar('--ink'), grid:cssVar('--grid'), card:cssVar('--card') }; }
+
+function tripsFor(scope){ return scope === 'all' ? DATA.trips : DATA.trips.filter(t => t.mon === scope); }
+function vehicleAgg(ts){
+  const m = {};
+  ts.forEach(t => { const k = t.v; (m[k] = m[k] || {v:k, ev:0, we:0, tot:0, n:0});
+    if (t.we) m[k].we += t.mi; else m[k].ev += t.mi; m[k].tot += t.mi; m[k].n++; });
+  return Object.values(m).sort((a,b) => b.tot - a.tot);
 }
-function buildCharts() {
-  charts.forEach(c => c.destroy());
-  charts = [];
-  const text = cssVar('--muted');
-  const ink = cssVar('--ink');
-  const grid = cssVar('--grid');
-  const cardBg = cssVar('--card');
-  Chart.defaults.color = text;
-  Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
-  Chart.defaults.font.size = 13;
+function dayAgg(ts){
+  const ev = [0,0,0,0,0,0,0], we = [0,0,0,0,0,0,0];
+  ts.forEach(t => { if (t.we) we[t.wd] += t.mi; else ev[t.wd] += t.mi; });
+  return { ev, we };
+}
 
-  charts.push(new Chart(document.getElementById('chartVehicle'), {
+let monthlyChart = null, scopeCharts = [];
+
+function buildMonthly(){
+  if (monthlyChart) monthlyChart.destroy();
+  const c = theme();
+  const datasets = DATA.vehicles.map(v => ({
+    label: v, backgroundColor: colorFor(v), borderRadius: 4, maxBarThickness: 60,
+    data: DATA.months.map(mo => r1(DATA.trips
+      .filter(t => t.mon === mo && t.v === v).reduce((s,t) => s + t.mi, 0)))
+  }));
+  monthlyChart = new Chart(byId('chartMonthly'), {
     type: 'bar',
-    data: { labels: DATA.vehicles, datasets: [
-      { label: 'Weekday evening (after 7:30 PM)', data: DATA.evening,
+    data: { labels: DATA.months.map(m => DATA.monthLabels[m]), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { color: c.text } },
+        y: { stacked: true, beginAtZero: true, grid: { color: c.grid },
+             ticks: { color: c.text }, title: { display: true, text: 'Miles', color: c.text } }
+      },
+      plugins: {
+        legend: { position: 'top', align: 'end',
+          labels: { color: c.ink, usePointStyle: true, pointStyle: 'rectRounded', padding: 13 } },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + f1(ctx.parsed.y) + ' mi' } }
+      }
+    }
+  });
+  buildMonthlyTable();
+}
+function buildMonthlyTable(){
+  let rows = '';
+  DATA.months.forEach(mo => {
+    const ts = DATA.trips.filter(t => t.mon === mo);
+    const agg = vehicleAgg(ts);
+    const top = agg.length ? esc(agg[0].v) + ' (' + f1(agg[0].tot) + ' mi)' : '—';
+    rows += '<tr><td>' + DATA.monthLabels[mo] + '</td><td class="num">'
+      + f1(ts.reduce((s,t) => s + t.mi, 0)) + '</td><td class="num">' + ts.length
+      + '</td><td>' + top + '</td></tr>';
+  });
+  rows += '<tr style="font-weight:700"><td>All time</td><td class="num">'
+    + f1(DATA.trips.reduce((s,t) => s + t.mi, 0)) + '</td><td class="num">'
+    + DATA.trips.length + '</td><td></td></tr>';
+  byId('monthlyTable').innerHTML = rows || '<tr><td colspan="4">No data yet.</td></tr>';
+}
+
+function render(scope){
+  const ts = tripsFor(scope);
+  const label = scope === 'all' ? 'All time' : DATA.monthLabels[scope];
+  ['scopeLabel','scopeLabel2','scopeLabel3'].forEach(id => byId(id).textContent = label);
+
+  const agg = vehicleAgg(ts);
+  byId('kpiMiles').innerHTML = f1(ts.reduce((s,t) => s + t.mi, 0)) + '<span class="kpi-unit">mi</span>';
+  byId('kpiTrips').textContent = ts.length;
+  byId('kpiVehicles').textContent = agg.length;
+  byId('kpiBusiest').innerHTML = agg.length
+    ? esc(agg[0].v) + '<span class="kpi-sub">' + f1(agg[0].tot) + ' mi</span>' : '—';
+
+  scopeCharts.forEach(c => c.destroy());
+  scopeCharts = [];
+  const c = theme();
+
+  byId('vehicleBox').style.height = Math.max(170, agg.length * 52 + 70) + 'px';
+  scopeCharts.push(new Chart(byId('chartVehicle'), {
+    type: 'bar',
+    data: { labels: agg.map(a => a.v), datasets: [
+      { label: 'Weekday evening (after 7:30 PM)', data: agg.map(a => r1(a.ev)),
         backgroundColor: '#f59e0b', borderRadius: 5, maxBarThickness: 38 },
-      { label: 'Weekend (Sat / Sun)', data: DATA.weekend,
+      { label: 'Weekend (Sat / Sun)', data: agg.map(a => r1(a.we)),
         backgroundColor: '#ef4444', borderRadius: 5, maxBarThickness: 38 }
     ]},
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
       scales: {
-        x: { stacked: true, beginAtZero: true, grid: { color: grid },
-             ticks: { color: text }, title: { display: true, text: 'Miles', color: text } },
-        y: { stacked: true, grid: { display: false },
-             ticks: { color: ink, font: { weight: '600' } } }
+        x: { stacked: true, beginAtZero: true, grid: { color: c.grid },
+             ticks: { color: c.text }, title: { display: true, text: 'Miles', color: c.text } },
+        y: { stacked: true, grid: { display: false }, ticks: { color: c.ink, font: { weight: '600' } } }
       },
       plugins: {
         legend: { position: 'top', align: 'end',
-          labels: { color: ink, usePointStyle: true, pointStyle: 'rectRounded', padding: 16 } },
-        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.parsed.x.toFixed(1) + ' mi' } }
+          labels: { color: c.ink, usePointStyle: true, pointStyle: 'rectRounded', padding: 16 } },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + f1(ctx.parsed.x) + ' mi' } }
       }
     }
   }));
 
-  charts.push(new Chart(document.getElementById('chartDay'), {
+  const d = dayAgg(ts);
+  scopeCharts.push(new Chart(byId('chartDay'), {
     type: 'bar',
-    data: { labels: DATA.days, datasets: [
-      { label: 'Weekday evening', data: DATA.dayWeekday,
-        backgroundColor: '#f59e0b', borderRadius: 5, maxBarThickness: 40 },
-      { label: 'Weekend', data: DATA.dayWeekend,
-        backgroundColor: '#ef4444', borderRadius: 5, maxBarThickness: 40 }
+    data: { labels: DAYS, datasets: [
+      { label: 'Weekday evening', data: d.ev.map(r1), backgroundColor: '#f59e0b',
+        borderRadius: 5, maxBarThickness: 40 },
+      { label: 'Weekend', data: d.we.map(r1), backgroundColor: '#ef4444',
+        borderRadius: 5, maxBarThickness: 40 }
     ]},
     options: {
       responsive: true, maintainAspectRatio: false,
       scales: {
-        x: { stacked: true, grid: { display: false }, ticks: { color: text } },
-        y: { stacked: true, beginAtZero: true, grid: { color: grid },
-             ticks: { color: text }, title: { display: true, text: 'Miles', color: text } }
+        x: { stacked: true, grid: { display: false }, ticks: { color: c.text } },
+        y: { stacked: true, beginAtZero: true, grid: { color: c.grid },
+             ticks: { color: c.text }, title: { display: true, text: 'Miles', color: c.text } }
       },
       plugins: {
         legend: { position: 'top', align: 'end',
-          labels: { color: ink, usePointStyle: true, pointStyle: 'rectRounded', padding: 16 } },
-        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + ' mi' } }
+          labels: { color: c.ink, usePointStyle: true, pointStyle: 'rectRounded', padding: 16 } },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + f1(ctx.parsed.y) + ' mi' } }
       }
     }
   }));
 
-  charts.push(new Chart(document.getElementById('chartShare'), {
+  scopeCharts.push(new Chart(byId('chartShare'), {
     type: 'doughnut',
-    data: { labels: DATA.vehicles, datasets: [
-      { data: DATA.totals,
-        backgroundColor: DATA.vehicles.map((_, i) => PALETTE[i % PALETTE.length]),
-        borderColor: cardBg, borderWidth: 3 }
+    data: { labels: agg.map(a => a.v), datasets: [
+      { data: agg.map(a => r1(a.tot)), backgroundColor: agg.map(a => colorFor(a.v)),
+        borderColor: c.card, borderWidth: 3 }
     ]},
     options: {
       responsive: true, maintainAspectRatio: false, cutout: '58%',
       plugins: {
         legend: { position: 'right',
-          labels: { color: ink, usePointStyle: true, pointStyle: 'circle', padding: 13 } },
+          labels: { color: c.ink, usePointStyle: true, pointStyle: 'circle', padding: 13 } },
         tooltip: { callbacks: { label: ctx => {
-          const total = ctx.dataset.data.reduce((a, b) => a + b, 0) || 1;
-          const pct = (ctx.parsed / total * 100).toFixed(0);
-          return ctx.label + ': ' + ctx.parsed.toFixed(1) + ' mi (' + pct + '%)';
+          const tot = ctx.dataset.data.reduce((a,b) => a + b, 0) || 1;
+          return ctx.label + ': ' + f1(ctx.parsed) + ' mi (' + Math.round(ctx.parsed / tot * 100) + '%)';
         } } }
       }
     }
   }));
-}
-function toggleTheme() {
-  const cur = document.documentElement.getAttribute('data-theme');
-  document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
-  buildCharts();
+
+  const tb = byId('detailBody');
+  if (!ts.length) { tb.innerHTML = '<tr><td colspan="6">No after-hours trips.</td></tr>'; return; }
+  tb.innerHTML = ts.slice().sort((a,b) => a.ss - b.ss).map(t => {
+    const cls = t.we ? 'tag-weekend' : 'tag-evening';
+    const cat = t.we ? 'Weekend' : 'Weekday evening';
+    return '<tr><td>' + esc(t.v) + '</td><td>' + (esc(t.dr) || '—')
+      + '</td><td data-sort="' + t.ss + '">' + esc(t.st) + '</td><td>' + esc(t.en)
+      + '</td><td data-sort="' + t.mi + '" class="num">' + t.mi.toFixed(2)
+      + '</td><td><span class="tag ' + cls + '">' + cat + '</span></td></tr>';
+  }).join('');
 }
 
-// Sortable detail table.
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme');
+  document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+  buildMonthly();
+  render(byId('monthSelect').value);
+}
+
+// Sortable detail table (handlers query live rows at click time).
 document.querySelectorAll('#detail th').forEach(function (th, idx) {
   var asc = true;
   th.addEventListener('click', function () {
-    var tb = document.querySelector('#detail tbody');
+    var tb = byId('detailBody');
     var rows = Array.prototype.slice.call(tb.querySelectorAll('tr'));
     rows.sort(function (a, b) {
       var x = a.children[idx], y = b.children[idx];
+      if (!x || !y) return 0;
       var xv = x.dataset.sort !== undefined ? parseFloat(x.dataset.sort) : x.textContent.trim().toLowerCase();
       var yv = y.dataset.sort !== undefined ? parseFloat(y.dataset.sort) : y.textContent.trim().toLowerCase();
       if (xv < yv) return asc ? -1 : 1;
@@ -246,7 +354,18 @@ document.querySelectorAll('#detail th').forEach(function (th, idx) {
   });
 });
 
-buildCharts();
+// Init.
+(function () {
+  const sel = byId('monthSelect');
+  let opts = '<option value="all">All time</option>';
+  DATA.months.forEach(m => { opts += '<option value="' + m + '">' + DATA.monthLabels[m] + '</option>'; });
+  sel.innerHTML = opts;
+  const def = DATA.months.length ? DATA.months[DATA.months.length - 1] : 'all';
+  sel.value = def;
+  sel.addEventListener('change', () => render(sel.value));
+  buildMonthly();
+  render(def);
+})();
 </script>
 </body>
 </html>
