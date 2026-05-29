@@ -71,6 +71,21 @@
   [data-theme="dark"] .tag-evening { color:#fbbf24; }
   [data-theme="dark"] .tag-weekend { color:#f87171; }
   .table-scroll { overflow-x:auto; }
+  .excl-banner { display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    color:var(--muted); font-size:13px; margin:0 0 14px; padding:8px 12px;
+    background:var(--bg); border-radius:8px; border:1px solid var(--line); }
+  .excl-banner .excl-action { background:var(--card); border:1px solid var(--line);
+    color:var(--ink); border-radius:6px; padding:4px 10px; font-size:12px;
+    cursor:pointer; font-weight:600; }
+  .excl-banner .excl-action:hover { background:var(--line); }
+  .excl-btn { background:transparent; border:0; color:var(--muted); font-size:15px;
+    cursor:pointer; padding:1px 7px; border-radius:5px; line-height:1; }
+  .excl-btn:hover { background:rgba(239,68,68,.16); color:var(--weekend); }
+  .excl-btn.restore { color:#059669; }
+  [data-theme="dark"] .excl-btn.restore { color:#34d399; }
+  .excl-btn.restore:hover { background:rgba(16,185,129,.16); }
+  tr.excluded td { color:var(--muted); text-decoration:line-through; }
+  tr.excluded .tag, tr.excluded .excl-btn { text-decoration:none; }
   footer { color:var(--muted); font-size:12.5px; margin-top:26px; line-height:1.7; }
   footer code { background:var(--line); padding:1px 6px; border-radius:5px; }
   @media (max-width:760px) {
@@ -140,12 +155,18 @@
 
   <div class="card">
     <h2>After-hours trips <span class="scope-chip" id="scopeLabel3"></span></h2>
-    <p class="note">Click a column heading to sort.</p>
+    <p class="note">Click a column heading to sort. Use the &times; on a row to manually exclude a trip from totals (saved in this browser).</p>
+    <p class="excl-banner" id="exclBanner" style="display:none">
+      <span id="exclCount"></span>
+      <button class="excl-action" onclick="toggleShowExcluded()" id="exclToggleBtn">Show excluded</button>
+      <button class="excl-action" onclick="clearExcluded()">Clear all</button>
+    </p>
     <div class="table-scroll">
     <table id="detail">
       <thead><tr>
         <th>Vehicle</th><th>Start</th><th>End</th>
         <th>From</th><th>To</th><th class="num">Miles</th><th>Type</th>
+        <th class="no-sort" aria-label="exclude"></th>
       </tr></thead>
       <tbody id="detailBody"></tbody>
     </table>
@@ -153,7 +174,7 @@
   </div>
 
   <footer>
-    Generated May 29, 2026 01:19 PM from 2 lifetime reports + 1 weekly report.<br>
+    Generated May 29, 2026 04:32 PM from 2 lifetime reports + 1 weekly report.<br>
     After-hours = weekday trips starting at or after 5:30 PM, plus all weekend
     (Sat/Sun) trips. Classified by start time; times are local (Mountain).
     Vehicle = "Asset Name" in the source reports.<br>
@@ -179,7 +200,54 @@ function colorFor(v){
 }
 function theme(){ return { text:cssVar('--muted'), ink:cssVar('--ink'), grid:cssVar('--grid'), card:cssVar('--card') }; }
 
-function tripsFor(scope){ return scope === 'all' ? DATA.trips : DATA.trips.filter(t => t.mon === scope); }
+// --- Manual exclusions (per-browser localStorage) -----------------------------
+// A reviewer can manually exclude trips from the table; excluded trips don't
+// count toward KPIs/charts/totals and are hidden unless "Show excluded" is on.
+const EXCL_KEY = 'vd_excluded_v1';
+function tid(t){ return t.v + '|' + t.ss; }
+function _loadExcl(){
+  try { return new Set(JSON.parse(localStorage.getItem(EXCL_KEY) || '[]')); }
+  catch (e) { return new Set(); }
+}
+function _saveExcl(){
+  try { localStorage.setItem(EXCL_KEY, JSON.stringify([...EXCLUDED])); }
+  catch (e) {}
+}
+let EXCLUDED = _loadExcl();
+let SHOW_EXCL = false;
+function activeTrips(){ return DATA.trips.filter(t => !EXCLUDED.has(tid(t))); }
+function toggleExcl(id){
+  if (EXCLUDED.has(id)) EXCLUDED.delete(id); else EXCLUDED.add(id);
+  _saveExcl(); redrawAll();
+}
+function clearExcluded(){
+  if (!EXCLUDED.size) return;
+  if (!confirm('Restore all ' + EXCLUDED.size + ' excluded trip(s)?')) return;
+  EXCLUDED.clear(); _saveExcl(); redrawAll();
+}
+function toggleShowExcluded(){ SHOW_EXCL = !SHOW_EXCL; redrawAll(); }
+function updateBanner(){
+  const b = byId('exclBanner'); if (!b) return;
+  const n = EXCLUDED.size;
+  if (n === 0) { b.style.display = 'none'; SHOW_EXCL = false; return; }
+  b.style.display = '';
+  byId('exclCount').textContent = n + ' trip' + (n === 1 ? '' : 's')
+    + ' excluded by reviewer';
+  byId('exclToggleBtn').textContent = SHOW_EXCL ? 'Hide excluded' : 'Show excluded';
+}
+function redrawAll(){
+  buildMonthly();
+  const sel = byId('monthSelect');
+  if (sel) render(sel.value);
+  updateBanner();
+}
+
+function tripsForScope(scope){
+  return scope === 'all' ? DATA.trips : DATA.trips.filter(t => t.mon === scope);
+}
+function tripsFor(scope){          // KPIs / charts: never include excluded
+  return tripsForScope(scope).filter(t => !EXCLUDED.has(tid(t)));
+}
 function vehicleAgg(ts){
   const m = {};
   ts.forEach(t => { const k = t.v; (m[k] = m[k] || {v:k, ev:0, we:0, tot:0, n:0});
@@ -197,9 +265,10 @@ let monthlyChart = null, scopeCharts = [];
 function buildMonthly(){
   if (monthlyChart) monthlyChart.destroy();
   const c = theme();
+  const at = activeTrips();
   const datasets = DATA.vehicles.map(v => ({
     label: v, backgroundColor: colorFor(v), borderRadius: 4, maxBarThickness: 60,
-    data: DATA.months.map(mo => r1(DATA.trips
+    data: DATA.months.map(mo => r1(at
       .filter(t => t.mon === mo && t.v === v).reduce((s,t) => s + t.mi, 0)))
   }));
   monthlyChart = new Chart(byId('chartMonthly'), {
@@ -223,8 +292,9 @@ function buildMonthly(){
 }
 function buildMonthlyTable(){
   let rows = '';
+  const src = activeTrips();
   DATA.months.forEach(mo => {
-    const ts = DATA.trips.filter(t => t.mon === mo);
+    const ts = src.filter(t => t.mon === mo);
     const agg = vehicleAgg(ts);
     const top = agg.length ? esc(agg[0].v) + ' (' + f1(agg[0].tot) + ' mi)' : '—';
     rows += '<tr><td>' + DATA.monthLabels[mo] + '</td><td class="num">'
@@ -232,8 +302,8 @@ function buildMonthlyTable(){
       + '</td><td>' + top + '</td></tr>';
   });
   rows += '<tr style="font-weight:700"><td>All time</td><td class="num">'
-    + f1(DATA.trips.reduce((s,t) => s + t.mi, 0)) + '</td><td class="num">'
-    + DATA.trips.length + '</td><td></td></tr>';
+    + f1(src.reduce((s,t) => s + t.mi, 0)) + '</td><td class="num">'
+    + src.length + '</td><td></td></tr>';
   byId('monthlyTable').innerHTML = rows || '<tr><td colspan="4">No data yet.</td></tr>';
 }
 
@@ -321,15 +391,24 @@ function render(scope){
   }));
 
   const tb = byId('detailBody');
-  if (!ts.length) { tb.innerHTML = '<tr><td colspan="7">No after-hours trips.</td></tr>'; return; }
-  tb.innerHTML = ts.slice().sort((a,b) => a.ss - b.ss).map(t => {
+  // The table can optionally include excluded rows (shown struck-through) while
+  // the KPIs/charts above always reflect only the non-excluded set.
+  const tableSet = SHOW_EXCL ? tripsForScope(scope) : ts;
+  if (!tableSet.length) { tb.innerHTML = '<tr><td colspan="8">No after-hours trips.</td></tr>'; return; }
+  tb.innerHTML = tableSet.slice().sort((a,b) => a.ss - b.ss).map(t => {
     const cls = t.we ? 'tag-weekend' : 'tag-evening';
     const cat = t.we ? 'Weekend' : 'Weekday evening';
-    return '<tr><td>' + esc(t.v)
+    const id = tid(t);
+    const excl = EXCLUDED.has(id);
+    const btn = excl
+      ? `<button class="excl-btn restore" onclick="toggleExcl('${id}')" title="Restore this trip">↺</button>`
+      : `<button class="excl-btn" onclick="toggleExcl('${id}')" title="Exclude this trip">×</button>`;
+    return '<tr' + (excl ? ' class="excluded"' : '') + '><td>' + esc(t.v)
       + '</td><td data-sort="' + t.ss + '">' + esc(t.st) + '</td><td>' + esc(t.en)
       + '</td><td>' + esc(t.frm) + '</td><td>' + esc(t.to)
       + '</td><td data-sort="' + t.mi + '" class="num">' + t.mi.toFixed(2)
-      + '</td><td><span class="tag ' + cls + '">' + cat + '</span></td></tr>';
+      + '</td><td><span class="tag ' + cls + '">' + cat + '</span></td>'
+      + '<td>' + btn + '</td></tr>';
   }).join('');
 }
 
@@ -341,7 +420,7 @@ function toggleTheme(){
 }
 
 // Sortable detail table (handlers query live rows at click time).
-document.querySelectorAll('#detail th').forEach(function (th, idx) {
+document.querySelectorAll('#detail th:not(.no-sort)').forEach(function (th, idx) {
   var asc = true;
   th.addEventListener('click', function () {
     var tb = byId('detailBody');
@@ -371,6 +450,7 @@ document.querySelectorAll('#detail th').forEach(function (th, idx) {
   sel.addEventListener('change', () => render(sel.value));
   buildMonthly();
   render(def);
+  updateBanner();
 })();
 </script>
 </body>
